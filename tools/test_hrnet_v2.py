@@ -22,8 +22,7 @@ from core.criterion import CrossEntropy, OhemCrossEntropy
 from core.function import validate, testval, test
 from utils.hrnet_v2_utils.utils import create_logger, FullModel
 from utils.hrnet_utils.normalization_utils import get_imagenet_mean_std
-from semantic_dataloader import UWFSDataLoader
-from semantic_dataloader_final import UWFSDataLoader as UWFSDataLoader2
+from gb_dataloader import GBDataLoader
 from utils.hrnet_utils import transform
 from tqdm import tqdm
 from scipy.io import loadmat
@@ -84,57 +83,51 @@ def main():
     # prepare data
     mean, std = get_imagenet_mean_std()
 
-    if config.DATASET.DATASET == 'UWS3':
-        val_transform_list = [
-            transform.ResizeShort(config.TRAIN.IMAGE_SIZE[0]),
-            transform.Crop(
-                [config.TRAIN.IMAGE_SIZE[0], config.TRAIN.IMAGE_SIZE[1]],
-                crop_type="center",
-                padding=mean,
-                ignore_label=config.TRAIN.IGNORE_LABEL,
-            ),
-            transform.ToTensor(),
-            transform.Normalize(mean=mean, std=std),
-        ]
+    val_transform_list = [
+        transform.ResizeShort(config.TRAIN.IMAGE_SIZE[0]),
+        transform.Crop(
+            [config.TRAIN.IMAGE_SIZE[0], config.TRAIN.IMAGE_SIZE[1]],
+            crop_type="center",
+            padding=mean,
+            ignore_label=config.TRAIN.IGNORE_LABEL,
+        ),
+        transform.ToTensor(),
+        transform.Normalize(mean=mean, std=std),
+    ]
 
-        val_dir = config.DATASET.TEST_SET
-        images_files = glob.glob(
-            os.path.join(
-                config.DATASET.ROOT,
-                val_dir,
-                'images',
-                '*.png'
-            )
+    val_dir = config.DATASET.TEST_SET
+    images_files = glob.glob(
+        os.path.join(
+            config.DATASET.ROOT,
+            val_dir,
+            'images',
+            '*.png'
         )
-        masks_files = \
-            [os.path.join(config.DATASET.ROOT, val_dir, 'labels', os.path.basename(m_i)) for m_i in images_files]
+    )
+    masks_files = \
+        [os.path.join(config.DATASET.ROOT, val_dir, 'labels', os.path.basename(m_i)) for m_i in images_files]
 
-        images_test = []
-        masks_test = []
+    images_test = []
+    masks_test = []
 
-        for i_i_fl, img_fl in enumerate(tqdm(images_files)):
-            images_test.append(np.array(
-                Image.open(img_fl)
-            ))
-            masks_test.append(np.array(
-                Image.open(masks_files[i_i_fl])
-            ))
+    for i_i_fl, img_fl in enumerate(tqdm(images_files)):
+        images_test.append(np.array(
+            Image.open(img_fl)
+        ))
+        masks_test.append(np.array(
+            Image.open(masks_files[i_i_fl])
+        ))
 
-        dataset_len = len(images_test)
-        logger.info(f'Total val files: {dataset_len}')
+    dataset_len = len(images_test)
+    logger.info(f'Total val files: {dataset_len}')
 
-        test_size = (config.TEST.IMAGE_SIZE[1], config.TEST.IMAGE_SIZE[0])
-        val_dataset = UWFSDataLoader2(
-            output_image_height=config.TRAIN.IMAGE_SIZE[0],
-            images=images_test,
-            masks=masks_test,
-            normalizer=transform.Compose(val_transform_list),
-            channel_values=None
-        )
-    else:
-        val_dataset = None
-        logger.info("=> no dataset found. " 'Exiting...')
-        exit()
+    val_dataset = GBDataLoader(
+        output_image_height=config.TRAIN.IMAGE_SIZE[0],
+        images=images_test,
+        masks=masks_test,
+        normalizer=transform.Compose(val_transform_list),
+        channel_values=None
+    )
 
     val_sampler = None
     val_loader = torch.utils.data.DataLoader(
@@ -196,31 +189,24 @@ def main():
     else:
         raise ValueError('Only Support SGD optimizer')
 
-    if config.TEST.MODEL_FILE:
+    if config.TEST.MODEL_FILE and config.DATA_PARALLEL:
         model_state_file = config.TEST.MODEL_FILE
         if os.path.isfile(model_state_file):
             checkpoint = torch.load(model_state_file, map_location={'cuda:0': 'cpu'})
             model.module.load_state_dict(checkpoint)
             logger.info("=> loaded pretrained model {}"
                         .format(config.MODEL.PRETRAINED))
+    elif not config.DATA_PARALLEL:
+        if config.TEST.MODEL_FILE:
+            model_state_file = config.TEST.MODEL_FILE
+        else:
+            model_state_file = os.path.join(final_output_dir, 'final_state.pth')
+        logger.info('=> loading model from {}'.format(model_state_file))
 
-    if config.TEST.MODEL_FILE:
-        model_state_file = config.TEST.MODEL_FILE
+        pretrained_dict = torch.load(model_state_file)
+        model.load_state_dict(pretrained_dict)
     else:
-        model_state_file = os.path.join(final_output_dir, 'final_state.pth')
-    logger.info('=> loading model from {}'.format(model_state_file))
-
-    pretrained_dict = torch.load(model_state_file)
-    if 'state_dict' in pretrained_dict:
-        pretrained_dict = pretrained_dict['state_dict']
-    model_dict = model.state_dict()
-    pretrained_dict = {k[6:]: v for k, v in pretrained_dict.items()
-                       if k[6:] in model_dict.keys()}
-    for k, _ in pretrained_dict.items():
-        logger.info(
-            '=> loading {} from pretrained model'.format(k))
-    model_dict.update(pretrained_dict)
-    model.load_state_dict(model_dict)
+        raise ValueError('Could not load the model.')
 
     start = timeit.default_timer()
 
