@@ -21,7 +21,7 @@ from core.function import validate
 from utils.hrnet_v2_utils.utils import create_logger, FullModel
 from utils.hrnet_v2_utils.normalization_utils import get_imagenet_mean_std
 from uws_dataloader import UWSDataLoader
-from utils.hrnet_utils import transform
+from utils.hrnet_v2_utils import transform
 from utils.load_images_and_masks import load_images_and_masks
 from networks import hrnet_v2 as models
 
@@ -175,6 +175,7 @@ def main():
         if os.path.isfile(model_state_file):
             checkpoint = torch.load(model_state_file, map_location={'cuda:0': 'cpu'})
             model.module.load_state_dict(checkpoint)
+            logger.info("=> Using Data Parallel")
             logger.info("=> loaded pretrained model {}"
                         .format(config.MODEL.PRETRAINED))
     elif not config.DATA_PARALLEL:
@@ -182,6 +183,7 @@ def main():
             model_state_file = config.TEST.MODEL_FILE
         else:
             model_state_file = os.path.join(final_output_dir, 'final_state.pth')
+        logger.info("=> Not using Data Parallel")
         logger.info('=> loading model from {}'.format(model_state_file))
 
         pretrained_dict = torch.load(model_state_file)
