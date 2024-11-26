@@ -6,12 +6,19 @@ import torch
 class GBDataLoader(torch.utils.data.Dataset):
     
     def __init__(self, output_image_height=700, images=None,
-                 masks=None, normalizer=None, channel_values=None):
+                 masks=None, transform=None, channel_values=None):
+        """
+            output_image_height: output image height in pixels
+            images: list of images
+            masks: list of masks
+            transform: instance of transform.Compose initialized with a list of transformations
+            channel_values: A dictionary containing the train_id and color of each class in the segmentation mask
+        """
         
         self.output_image_height    = output_image_height
         self.images                 = images
         self.masks                  = masks
-        self.normalizer             = normalizer
+        self.transform              = transform
         self.channel_values         = channel_values
 
         if not self.channel_values:
@@ -30,7 +37,7 @@ class GBDataLoader(torch.utils.data.Dataset):
         print(f"GBLoader: total images: {len(self.images)}")
         print(f"GBLoader: total masks: {len(self.masks)}")
         print(f"GBLoader: labels: {self.label_dictionary}")
-        print(f"GBLoader: transform: {self.normalizer}")
+        print(f"GBLoader: transform: {self.transform}")
 
         if self.length == 0:
             raise FileNotFoundError('No dataset files found')
@@ -71,7 +78,7 @@ class GBDataLoader(torch.utils.data.Dataset):
         if self.normalizer:
             #import pdb
             #pdb.set_trace()
-            image, label_image_gray = self.normalizer(img, label_image_gray)
+            image, label_image_gray = self.transform(img, label_image_gray)
         else:
             raise NotImplementedError("Normalizer not implemented...")
 

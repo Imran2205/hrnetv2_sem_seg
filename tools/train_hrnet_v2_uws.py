@@ -31,6 +31,9 @@ from PIL import Image
 
 
 def parse_args():
+    """
+        Parse input arguments
+    """
     parser = argparse.ArgumentParser(description='Train segmentation network')
 
     parser.add_argument('--cfg',
@@ -50,6 +53,9 @@ def parse_args():
 
 
 def main():
+    """
+    Train HRNet V2 network on Underwater Segmentation dataset
+    """
     args = parse_args()
 
     if args.seed > 0:
@@ -120,14 +126,14 @@ def main():
             output_image_height=config.TRAIN.IMAGE_SIZE[0],
             images=images_train,
             masks=masks_train,
-            normalizer=transform.Compose(train_transform_list),
+            transform=transform.Compose(train_transform_list),
             channel_values=None
         )
         val_dataset = UWSDataLoader(
             output_image_height=config.TRAIN.IMAGE_SIZE[0],
             images=images_test,
             masks=masks_test,
-            normalizer=transform.Compose(val_transform_list),
+            transform=transform.Compose(val_transform_list),
             channel_values=None
         )
     else:

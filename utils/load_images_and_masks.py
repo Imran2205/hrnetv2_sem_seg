@@ -6,6 +6,12 @@ import glob
 
 
 def load_images_and_masks(dataset_root, split, augment=False):
+    """
+    Load images and masks from a directory of images and masks.
+    dataset_root: root directory of dataset
+    split: train or val
+    augment: whether to augment or not
+    """
     images_files = glob.glob(
         os.path.join(
             dataset_root,

@@ -4,12 +4,22 @@ import torch
 
 
 class UWSDataLoader(torch.utils.data.Dataset):
+    """
+    Dataloader for underwater segmentation dataset
+    """
     def __init__(self, output_image_height=700, images=None,
-                 masks=None, normalizer=None, channel_values=None):
+                 masks=None, transform=None, channel_values=None):
+        """
+        output_image_height: output image height in pixels
+        images: list of images
+        masks: list of masks
+        transform: instance of transform.Compose initialized with a list of transformations
+        channel_values: A dictionary containing the train_id and color of each class in the segmentation mask
+        """
         self.output_image_height = output_image_height
         self.images = images
         self.masks = masks
-        self.normalizer = normalizer
+        self.transform = transform
         self.channel_values = channel_values
 
         if not self.channel_values:
@@ -71,8 +81,8 @@ class UWSDataLoader(torch.utils.data.Dataset):
     def __getitem__(self, index):
         img, label_image_gray = self.get_image_nd_label(index)
 
-        if self.normalizer:            
-            image, label_image_gray = self.normalizer(img, label_image_gray)
+        if self.transform:
+            image, label_image_gray = self.transform(img, label_image_gray)
         else:
             raise NotImplementedError("Normalizer not implemented...")
 
