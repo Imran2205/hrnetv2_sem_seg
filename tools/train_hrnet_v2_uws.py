@@ -21,10 +21,10 @@ from core.function import train, validate
 from utils.hrnet_v2_utils.utils import create_logger, FullModel
 from utils.hrnet_v2_utils.normalization_utils import get_imagenet_mean_std
 from utils.load_images_and_masks import load_images_and_masks
-
 from uws_dataloader import UWSDataLoader
-
 from utils.hrnet_v2_utils import transform
+from networks import hrnet_v2 as models
+
 from tqdm import tqdm
 import glob
 from PIL import Image

@@ -23,7 +23,7 @@ from utils.hrnet_v2_utils.normalization_utils import get_imagenet_mean_std
 from gb_dataloader import GBDataLoader
 from utils.hrnet_v2_utils import transform
 from utils.load_images_and_masks import load_images_and_masks
-
+from networks import hrnet_v2 as models
 
 from tqdm import tqdm
 import glob
