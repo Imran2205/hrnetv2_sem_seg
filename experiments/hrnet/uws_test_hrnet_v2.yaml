@@ -7,7 +7,7 @@ LOG_DIR: '/content/log'
 OUTPUT_DIR: '/content/output'
 WORKERS: 2
 PRINT_FREQ: 5
-DATA_PARALLEL: True
+DATA_PARALLEL: False
 
 DATASET:
   DATASET: UWS3
