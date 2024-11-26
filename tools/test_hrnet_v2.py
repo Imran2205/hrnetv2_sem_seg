@@ -138,9 +138,6 @@ def main():
 
     model = FullModel(model, criterion)
 
-    gpus = list(config.GPUS)
-    model = nn.DataParallel(model, device_ids=gpus).cuda()
-
     # optimizer
     if config.TRAIN.OPTIMIZER == 'sgd':
 
@@ -171,6 +168,8 @@ def main():
         raise ValueError('Only Support SGD optimizer')
 
     if config.TEST.MODEL_FILE and config.DATA_PARALLEL:
+        gpus = list(config.GPUS)
+        model = nn.DataParallel(model, device_ids=gpus).cuda()
         model_state_file = config.TEST.MODEL_FILE
         if os.path.isfile(model_state_file):
             checkpoint = torch.load(model_state_file, map_location={'cuda:0': 'cpu'})
@@ -188,6 +187,8 @@ def main():
 
         pretrained_dict = torch.load(model_state_file)
         model.load_state_dict(pretrained_dict)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model = model.to(device)
     else:
         raise ValueError('Could not load the model.')
 
