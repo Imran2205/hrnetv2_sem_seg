@@ -1,4 +1,3 @@
-import _init_paths
 import argparse
 import os
 import pprint
@@ -14,19 +13,17 @@ import torch.backends.cudnn as cudnn
 import torch.optim
 from tensorboardX import SummaryWriter
 
-from networks import hrnet_v2 as models
-
 from config import config_hrnet_v2 as config
 from config import update_config_hrnet_v2 as update_config
 from core.criterion import CrossEntropy, OhemCrossEntropy
-from core.function import validate, testval, test
+from core.function import validate
 from utils.hrnet_v2_utils.utils import create_logger, FullModel
-from utils.hrnet_utils.normalization_utils import get_imagenet_mean_std
-from gb_dataloader import GBDataLoader
+from utils.hrnet_v2_utils.normalization_utils import get_imagenet_mean_std
+from uws_dataloader import UWSDataLoader
 from utils.hrnet_utils import transform
+from utils.load_images_and_masks import load_images_and_masks
+
 from tqdm import tqdm
-from scipy.io import loadmat
-from sklearn.model_selection import StratifiedShuffleSplit
 
 import glob
 from PIL import Image
@@ -83,51 +80,33 @@ def main():
     # prepare data
     mean, std = get_imagenet_mean_std()
 
-    val_transform_list = [
-        transform.ResizeShort(config.TRAIN.IMAGE_SIZE[0]),
-        transform.Crop(
-            [config.TRAIN.IMAGE_SIZE[0], config.TRAIN.IMAGE_SIZE[1]],
-            crop_type="center",
-            padding=mean,
-            ignore_label=config.TRAIN.IGNORE_LABEL,
-        ),
-        transform.ToTensor(),
-        transform.Normalize(mean=mean, std=std),
-    ]
+    if config.DATASET.DATASET == 'UWS3':
+        val_transform_list = [
+            transform.ResizeShort(config.TRAIN.IMAGE_SIZE[0]),
+            transform.Crop(
+                [config.TRAIN.IMAGE_SIZE[0], config.TRAIN.IMAGE_SIZE[1]],
+                crop_type="center",
+                padding=mean,
+                ignore_label=config.TRAIN.IGNORE_LABEL,
+            ),
+            transform.ToTensor(),
+            transform.Normalize(mean=mean, std=std),
+        ]
 
-    val_dir = config.DATASET.TEST_SET
-    images_files = glob.glob(
-        os.path.join(
-            config.DATASET.ROOT,
-            val_dir,
-            'images',
-            '*.png'
+        val_dir = config.DATASET.TEST_SET
+        images_test, masks_test = load_images_and_masks(config.DATASET.ROOT, val_dir, augment=False)
+
+        val_dataset = UWSDataLoader(
+            output_image_height=config.TRAIN.IMAGE_SIZE[0],
+            images=images_test,
+            masks=masks_test,
+            normalizer=transform.Compose(val_transform_list),
+            channel_values=None
         )
-    )
-    masks_files = \
-        [os.path.join(config.DATASET.ROOT, val_dir, 'labels', os.path.basename(m_i)) for m_i in images_files]
-
-    images_test = []
-    masks_test = []
-
-    for i_i_fl, img_fl in enumerate(tqdm(images_files)):
-        images_test.append(np.array(
-            Image.open(img_fl)
-        ))
-        masks_test.append(np.array(
-            Image.open(masks_files[i_i_fl])
-        ))
-
-    dataset_len = len(images_test)
-    logger.info(f'Total val files: {dataset_len}')
-
-    val_dataset = GBDataLoader(
-        output_image_height=config.TRAIN.IMAGE_SIZE[0],
-        images=images_test,
-        masks=masks_test,
-        normalizer=transform.Compose(val_transform_list),
-        channel_values=None
-    )
+    else:
+        val_dataset = None
+        logger.info("=> no dataset found. " 'Exiting...')
+        exit()
 
     val_sampler = None
     val_loader = torch.utils.data.DataLoader(

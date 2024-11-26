@@ -1,4 +1,3 @@
-import _init_paths
 import argparse
 import os
 import pprint
@@ -14,21 +13,18 @@ import torch.backends.cudnn as cudnn
 import torch.optim
 from tensorboardX import SummaryWriter
 
-from networks import hrnet_v2 as models
-
 from config import config_hrnet_v2 as config
 from config import update_config_hrnet_v2 as update_config
 from core.criterion import CrossEntropy, OhemCrossEntropy
 from core.function import train, validate
 from utils.hrnet_v2_utils.utils import create_logger, FullModel
-from utils.hrnet_utils.normalization_utils import get_imagenet_mean_std
-#from semantic_dataloader import UWFSDataLoader
-#from semantic_dataloader_final import UWFSDataLoader as UWFSDataLoader2
+from utils.hrnet_v2_utils.normalization_utils import get_imagenet_mean_std
 from gb_dataloader import GBDataLoader
-from utils.hrnet_utils import transform
+from utils.hrnet_v2_utils import transform
+from utils.load_images_and_masks import load_images_and_masks
+
+
 from tqdm import tqdm
-from scipy.io import loadmat
-from sklearn.model_selection import StratifiedShuffleSplit
 import glob
 from PIL import Image
 
@@ -117,113 +113,10 @@ def main():
         
         train_dir       = config.DATASET.TRAIN_SET
         val_dir         = config.DATASET.TEST_SET
-        
-        '''
-        images_files    = glob.glob( os.path.join( config.DATASET.ROOT, train_dir, 'images', '*.png'))
-        masks_files     = [os.path.join(config.DATASET.ROOT, train_dir, 'labels', os.path.basename(m_i[:-4]+'.png')) for m_i in images_files]
-        '''
-        images_files    = glob.glob( os.path.join( config.DATASET.ROOT, train_dir, 'images', '*.png'))
-        masks_files     = glob.glob( os.path.join( config.DATASET.ROOT, train_dir, 'labels', '*.png'))
-        
-        images          = []
-        masks           = []
 
-        for i_i_fl, img_fl in enumerate(tqdm(images_files)):
-            images.append(np.array(
-                Image.open(img_fl)
-            ))
-            masks.append(np.array(
-                Image.open(masks_files[i_i_fl])
-            ))
+        images_train, masks_train = load_images_and_masks(config.DATASET.ROOT, train_dir, augment=True)
+        images_test, masks_test = load_images_and_masks(config.DATASET.ROOT, val_dir, augment=False)
 
-        dataset_len = len(images)
-        logger.info(f'Total train image files: {dataset_len}')
-        np.random.seed(0)
-        rand_n = list(np.random.randint(low=0, high=dataset_len, size=dataset_len//2))
-        for i in rand_n:
-            im = images[i]
-            target = masks[i]
-            # perform horizontal flip
-            images.append(np.fliplr(im))
-            masks.append(np.fliplr(target))
-
-        # shift right
-        rand_n = list(np.random.randint(low=0, high=dataset_len, size=dataset_len//4))
-        for i in rand_n:
-            shift = 20
-            im = images[i]
-            target = masks[i]
-
-            im[:, shift:] = im[:, :-shift]
-            target[:, shift:] = target[:, :-shift]
-            images.append(im)
-            masks.append(target)
-
-        # shift left
-        rand_n = list(np.random.randint(low=0, high=dataset_len, size=dataset_len//4))
-        for i in rand_n:
-            shift = 20
-            im = images[i]
-            target = masks[i]
-
-            im[:, :-shift] = im[:, shift:]
-            target[:, :-shift] = target[:, shift:]
-            images.append(im)
-            masks.append(target)
-
-        # shift up
-        rand_n = list(np.random.randint(low=0, high=dataset_len, size=dataset_len//4))
-        for i in rand_n:
-            shift = 20
-            im = images[i]
-            target = masks[i]
-
-            im[:-shift, :] = im[shift:, :]
-            target[:-shift, :] = target[shift:, :]
-            images.append(im)
-            masks.append(target)
-
-        # shift down
-        rand_n = list(np.random.randint(low=0, high=dataset_len, size=dataset_len//4))
-        for i in rand_n:
-            shift = 20
-            im = images[i]
-            target = masks[i]
-
-            im[shift:, :] = im[:-shift, :]
-            target[shift:, :] = target[:-shift, :]
-            images.append(im)
-            masks.append(target)
-        
-        images_train = images
-        masks_train = masks
-
-        
-        # ------------------ load the validation images and their labels -----------------------
-        '''        
-        images_files    = glob.glob( os.path.join( config.DATASET.ROOT, val_dir,   'images', '*.png') )        
-        masks_files     = [os.path.join(config.DATASET.ROOT, val_dir, 'labels', os.path.basename(m_i[:-4]+'.png')) for m_i in images_files]
-        '''
-        
-        images_files    = glob.glob( os.path.join( config.DATASET.ROOT, val_dir, 'images', '*.png'))
-        masks_files     = glob.glob( os.path.join( config.DATASET.ROOT, val_dir, 'labels', '*.png'))        
-        images_test     = []
-        masks_test      = []
-
-        for i_i_fl, img_fl in enumerate(tqdm(images_files)):
-            images_test.append(np.array(
-                Image.open(img_fl)
-            ))
-            masks_test.append(np.array(
-                Image.open(masks_files[i_i_fl])
-            ))
-        
-        #import pdb
-        #pdb.set_trace()        
-        
-        dataset_len = len(images_test)
-        logger.info(f'Total val mat files: {dataset_len}')
-        
         train_dataset = GBDataLoader(
             output_image_height =   config.TRAIN.IMAGE_SIZE[0],
             #error 1
@@ -240,9 +133,6 @@ def main():
             normalizer          =   transform.Compose(val_transform_list),
             channel_values      =   None
         )
-        
-        
-        
     else:
         train_dataset = None
         val_dataset = None
@@ -291,7 +181,6 @@ def main():
 
     # optimizer
     if config.TRAIN.OPTIMIZER == 'sgd':
-
         params_dict = dict(model.named_parameters())
         if config.TRAIN.NONBACKBONE_KEYWORDS:
             bb_lr = []

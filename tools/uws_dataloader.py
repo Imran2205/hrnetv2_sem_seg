@@ -22,7 +22,7 @@ from torch.utils import data
 from config import config_hrnet_v2 as config
 
 
-class UWFSDataLoader(torch.utils.data.Dataset):
+class UWSDataLoader(torch.utils.data.Dataset):
     def __init__(self, output_image_height=700, images=None,
                  masks=None, normalizer=None, channel_values=None):
         self.output_image_height = output_image_height
