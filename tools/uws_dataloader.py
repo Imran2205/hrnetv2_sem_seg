@@ -23,6 +23,12 @@ class UWSDataLoader(torch.utils.data.Dataset):
         self.channel_values = channel_values
 
         if not self.channel_values:
+            """
+                Train ID 255 is used for representing unlabeled class, which is ignored during training.
+                We follow suggestions from the cityscape dataset train IDs
+                Please refer to cityscape dataset train IDs for details: 
+                https://github.com/mcordts/cityscapesScripts/blob/master/cityscapesscripts/helpers/labels.py
+            """
             self.label_dictionary = {
                 0:  {'name': 'unlabeled',   'train_id': 255, 'color': (0,   0,   0)},
                 1:  {'name': 'crab',        'train_id': 0,   'color': (128, 64,  128)},
