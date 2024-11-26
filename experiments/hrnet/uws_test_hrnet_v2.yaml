@@ -7,7 +7,6 @@ LOG_DIR: '/content/log'
 OUTPUT_DIR: '/content/output'
 WORKERS: 2
 PRINT_FREQ: 5
-DATA_PARALLEL: False
 
 DATASET:
   DATASET: UWS3
@@ -101,4 +100,5 @@ TEST:
   BATCH_SIZE_PER_GPU: 16
   FLIP_TEST: false
   MULTI_SCALE: false
+  DATA_PARALLEL: False
   MODEL_FILE: '/content/HRNetV2/best.pth'

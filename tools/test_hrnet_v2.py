@@ -173,7 +173,7 @@ def main():
     else:
         raise ValueError('Only Support SGD optimizer')
 
-    if config.TEST.MODEL_FILE and config.DATA_PARALLEL:
+    if config.TEST.MODEL_FILE and config.TEST.DATA_PARALLEL:
         gpus = list(config.GPUS)
         model = nn.DataParallel(model, device_ids=gpus).cuda()
         model_state_file = config.TEST.MODEL_FILE
@@ -183,7 +183,7 @@ def main():
             logger.info("=> Using Data Parallel")
             logger.info("=> loaded pretrained model {}"
                         .format(config.MODEL.PRETRAINED))
-    elif not config.DATA_PARALLEL:
+    elif not config.TEST.DATA_PARALLEL:
         if config.TEST.MODEL_FILE:
             model_state_file = config.TEST.MODEL_FILE
         else:

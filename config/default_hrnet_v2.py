@@ -24,7 +24,6 @@ _C.PRINT_FREQ = 20
 _C.AUTO_RESUME = False
 _C.PIN_MEMORY = True
 _C.RANK = 0
-_C.DATA_PARALLEL = False
 
 # Cudnn related params
 _C.CUDNN = CN()
@@ -112,7 +111,7 @@ _C.TEST.BASE_SIZE = 2048
 _C.TEST.BATCH_SIZE_PER_GPU = 32
 # only testing some samples
 _C.TEST.NUM_SAMPLES = 0
-
+_C.TEST.DATA_PARALLEL = False
 _C.TEST.MODEL_FILE = ''
 _C.TEST.FLIP_TEST = False
 _C.TEST.MULTI_SCALE = False
