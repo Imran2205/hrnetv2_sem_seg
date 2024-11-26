@@ -216,13 +216,12 @@ def main():
         model_state_file = os.path.join(final_output_dir,
                                         'checkpoint.pth.tar')
         if os.path.isfile(model_state_file):
-            checkpoint = torch.load(model_state_file) # , map_location={'cuda:0': 'cpu'}
+            checkpoint = torch.load(model_state_file, map_location={'cuda:0': 'cpu'})
             best_mIoU = checkpoint['best_mIoU']
             last_epoch = checkpoint['epoch']
 
-            # model.module.model.load_state_dict(
-            #     {k.replace('model.', ''): v for k, v in checkpoint['state_dict'].items() if k.startswith('model.')})
-            model.module.model.load_state_dict(checkpoint['state_dict'])
+            model.module.model.load_state_dict(
+                {k.replace('model.', ''): v for k, v in checkpoint['state_dict'].items() if k.startswith('model.')})
             optimizer.load_state_dict(checkpoint['optimizer'])
             logger.info("=> loaded checkpoint (epoch {})"
                         .format(checkpoint['epoch']))
