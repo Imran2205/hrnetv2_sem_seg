@@ -71,7 +71,7 @@ class OhemCrossEntropy(nn.Module):
         print("????????")
         print(target.shape)
         for t in target:
-            print(target.max(), target.min())
+            print(target.dtype, target.unique())
 
         pixel_losses = self.criterion(score, target).contiguous().view(-1)
 
