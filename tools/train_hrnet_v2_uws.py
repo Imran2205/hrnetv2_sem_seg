@@ -29,6 +29,8 @@ from tqdm import tqdm
 import glob
 from PIL import Image
 
+torch.autograd.set_detect_anomaly(True)
+
 
 def parse_args():
     """
