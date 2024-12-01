@@ -10,7 +10,7 @@ PRINT_FREQ: 100
 
 DATASET:
   DATASET: UWS3
-  ROOT: '/content/uw_sem_seg_dataset/'
+  ROOT: '/content/uwss_v2'
   TEST_SET: 'validation'
   TRAIN_SET: 'train'
   NUM_CLASSES: 50
