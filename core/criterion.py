@@ -69,6 +69,7 @@ class OhemCrossEntropy(nn.Module):
                 h, w), mode='bilinear', align_corners=config.MODEL.ALIGN_CORNERS)
         pred = F.softmax(score, dim=1)
         pixel_losses = self.criterion(score, target).contiguous().view(-1)
+        print(target.shape, target)
         mask = target.contiguous().view(-1) != self.ignore_label
 
         tmp_target = target.clone()
