@@ -126,6 +126,9 @@ class UWSDataLoader(torch.utils.data.Dataset):
     def get_image_nd_label(self, index):
         image = self.images[index]
         label = self.masks[index]
+        if 51 in list(np.unique(label)):
+            Image.fromarray(image.astype(np.uint8)).save("./error_rgb.png")
+            Image.fromarray(label.astype(np.uint8)).save("./error_lbl.png")
         return image, label
 
     def __getitem__(self, index):
