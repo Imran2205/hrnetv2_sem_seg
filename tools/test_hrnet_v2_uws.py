@@ -17,15 +17,16 @@ from tensorboardX import SummaryWriter
 from config import config_hrnet_v2 as config
 from config import update_config_hrnet_v2 as update_config
 from core.criterion import CrossEntropy, OhemCrossEntropy
-from core.function import train, validate
+from core.function import validate
 from utils.hrnet_v2_utils.utils import create_logger, FullModel
 from utils.hrnet_v2_utils.normalization_utils import get_imagenet_mean_std
-from utils.load_images_and_masks import load_images_and_masks
-from tools.uws_dataloader import UWSDataLoader
+from uws_dataloader import UWSDataLoader
 from utils.hrnet_v2_utils import transform
+from utils.load_images_and_masks import load_images_and_masks
 from networks import hrnet_v2 as models
 
 from tqdm import tqdm
+
 import glob
 from PIL import Image
 
@@ -34,7 +35,7 @@ def parse_args():
     """
         Parse input arguments
     """
-    parser = argparse.ArgumentParser(description='Train segmentation network')
+    parser = argparse.ArgumentParser(description='Test segmentation network')
 
     parser.add_argument('--cfg',
                         help='experiment configure file name',
@@ -54,9 +55,7 @@ def parse_args():
 
 def main():
     """
-    Train HRNet V2 network on Underwater Segmentation dataset
-    - UWSv1
-    - UWSv2
+        Test HRNet V2 network on validation set of Underwater Segmentation dataset
     """
     args = parse_args()
 
@@ -84,28 +83,12 @@ def main():
     cudnn.enabled = config.CUDNN.ENABLED
     gpus = list(config.GPUS)
 
-    model = eval('models.' + config.MODEL.NAME +
-                 '.get_seg_model')(config)
-
-    batch_size = config.TRAIN.BATCH_SIZE_PER_GPU
+    batch_size = config.TEST.BATCH_SIZE_PER_GPU
 
     # prepare data
     mean, std = get_imagenet_mean_std()
-    
+
     if config.DATASET.DATASET == 'UWS3':
-        train_transform_list = [
-            transform.ResizeShort(config.TRAIN.IMAGE_SIZE[0]),
-            transform.Crop(
-                [config.TRAIN.IMAGE_SIZE[0], config.TRAIN.IMAGE_SIZE[1]],
-                crop_type="rand",
-                padding=mean,
-                ignore_label=config.TRAIN.IGNORE_LABEL,
-            ),
-            transform.ToTensor(),
-            transform.Normalize(mean=mean, std=std),
-        ]
-        # transform.ResizeTest((config.TRAIN.TRAIN_H, config.TRAIN.TRAIN_W)),
-        # transform.ResizeShort(config.TRAIN.SHORT_SIZE),
         val_transform_list = [
             transform.ResizeShort(config.TRAIN.IMAGE_SIZE[0]),
             transform.Crop(
@@ -117,52 +100,21 @@ def main():
             transform.ToTensor(),
             transform.Normalize(mean=mean, std=std),
         ]
-        
-        train_dir = config.DATASET.TRAIN_SET
-        val_dir = config.DATASET.TEST_SET
 
-        images_train, masks_train = load_images_and_masks(config.DATASET.ROOT, train_dir, augment=True)
+        val_dir = config.DATASET.TEST_SET
         images_test, masks_test = load_images_and_masks(config.DATASET.ROOT, val_dir, augment=False)
 
-        '''
-        import pdb
-        pdb.set_trace()
-        '''
-        
-        custom_transform_train = transform.Compose(train_transform_list)
-        train_dataset = UWSDataLoader(
-            output_image_height=config.TRAIN.IMAGE_SIZE[0],
-            images=images_train,
-            masks=masks_train,
-            transform=custom_transform_train,
-            channel_values=None
-        )
-        
-        custom_transform_test = transform.Compose(val_transform_list)
         val_dataset = UWSDataLoader(
             output_image_height=config.TRAIN.IMAGE_SIZE[0],
             images=images_test,
             masks=masks_test,
-            transform=custom_transform_test,
+            transform=transform.Compose(val_transform_list),
             channel_values=None
         )
     else:
-        train_dataset = None
         val_dataset = None
         logger.info("=> no dataset found. " 'Exiting...')
         exit()
-
-    train_sampler = None
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset,
-        batch_size=batch_size,
-        shuffle=(train_sampler is None),
-        num_workers=config.WORKERS,
-        pin_memory=True,
-        sampler=train_sampler,
-        drop_last=True
-    )
-    logger.info(f'Train loader has len: {len(train_loader)}')
 
     val_sampler = None
     val_loader = torch.utils.data.DataLoader(
@@ -176,7 +128,13 @@ def main():
     )
     logger.info(f'Validation loader has len: {len(val_loader)}')
 
-    # criterion
+    if torch.__version__.startswith('1'):
+        module = eval('models.' + config.MODEL.NAME)
+        module.BatchNorm2d_class = module.BatchNorm2d = torch.nn.BatchNorm2d
+
+    model = eval('models.' + config.MODEL.NAME +
+                 '.get_seg_model')(config)
+
     if config.LOSS.USE_OHEM:
         criterion = OhemCrossEntropy(ignore_label=config.TRAIN.IGNORE_LABEL,
                                      thres=config.LOSS.OHEMTHRES,
@@ -185,9 +143,6 @@ def main():
         criterion = CrossEntropy(ignore_label=config.TRAIN.IGNORE_LABEL)  # ,weight=train_dataset.class_weights)
 
     model = FullModel(model, criterion)
-
-    model = nn.DataParallel(model, device_ids=gpus).cuda()
-    logger.info(f'Using DataParallel')
 
     # optimizer
     if config.TRAIN.OPTIMIZER == 'sgd':
@@ -218,70 +173,40 @@ def main():
     else:
         raise ValueError('Only Support SGD optimizer')
 
-    epoch_iters = int(train_dataset.__len__() / config.TRAIN.BATCH_SIZE_PER_GPU / len(gpus))
-
-    best_mIoU = 0
-    last_epoch = 0
-    if config.TRAIN.RESUME:
-        model_state_file = os.path.join(final_output_dir,
-                                        'checkpoint.pth.tar')
+    if config.TEST.MODEL_FILE and config.TEST.DATA_PARALLEL:
+        gpus = list(config.GPUS)
+        model = nn.DataParallel(model, device_ids=gpus).cuda()
+        model_state_file = config.TEST.MODEL_FILE
         if os.path.isfile(model_state_file):
             checkpoint = torch.load(model_state_file, map_location={'cuda:0': 'cpu'})
-            best_mIoU = checkpoint['best_mIoU']
-            last_epoch = checkpoint['epoch']
-
-            model.module.model.load_state_dict(
-                {k.replace('model.', ''): v for k, v in checkpoint['state_dict'].items() if k.startswith('model.')})
-            optimizer.load_state_dict(checkpoint['optimizer'])
-            logger.info("=> loaded checkpoint (epoch {})"
-                        .format(checkpoint['epoch']))
-
-    extra_epoch_iters = 0
-    start = timeit.default_timer()
-    end_epoch = config.TRAIN.END_EPOCH + config.TRAIN.EXTRA_EPOCH
-    num_iters = config.TRAIN.END_EPOCH * epoch_iters
-    extra_iters = config.TRAIN.EXTRA_EPOCH * extra_epoch_iters
-
-    for epoch in range(last_epoch, end_epoch):
-
-        current_trainloader = train_loader if epoch >= config.TRAIN.END_EPOCH else train_loader
-        if current_trainloader.sampler is not None and hasattr(current_trainloader.sampler, 'set_epoch'):
-            current_trainloader.sampler.set_epoch(epoch)
-
-        # valid_loss, mean_IoU, IoU_array = validate(config,
-        #             testloader, model, writer_dict)
-
-        if epoch >= config.TRAIN.END_EPOCH:
-            train(config, epoch - config.TRAIN.END_EPOCH,
-                  config.TRAIN.EXTRA_EPOCH, extra_epoch_iters,
-                  config.TRAIN.EXTRA_LR, extra_iters,
-                  train_loader, optimizer, model, writer_dict)
+            model.module.load_state_dict(checkpoint)
+            logger.info("=> Using Data Parallel")
+            logger.info("=> loaded pretrained model {}"
+                        .format(config.MODEL.PRETRAINED))
+    elif not config.TEST.DATA_PARALLEL:
+        if config.TEST.MODEL_FILE:
+            model_state_file = config.TEST.MODEL_FILE
         else:
-            train(config, epoch, config.TRAIN.END_EPOCH,
-                  epoch_iters, config.TRAIN.LR, num_iters,
-                  train_loader, optimizer, model, writer_dict)
+            model_state_file = os.path.join(final_output_dir, 'final_state.pth')
+        logger.info("=> Not using Data Parallel")
+        logger.info('=> loading model from {}'.format(model_state_file))
 
-        valid_loss, mean_IoU, IoU_array = validate(config, val_loader, model, writer_dict)
+        pretrained_dict = torch.load(model_state_file)
+        model.load_state_dict(pretrained_dict)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model = model.to(device)
+    else:
+        raise ValueError('Could not load the model.')
 
-        logger.info('=> saving checkpoint to {}'.format(
-            final_output_dir + 'checkpoint.pth.tar'))
-        torch.save({
-            'epoch': epoch + 1,
-            'best_mIoU': best_mIoU,
-            'state_dict': model.module.state_dict(),
-            'optimizer': optimizer.state_dict(),
-        }, os.path.join(final_output_dir, 'checkpoint.pth.tar'))
-        if mean_IoU > best_mIoU:
-            best_mIoU = mean_IoU
-            torch.save(model.module.state_dict(),
-                       os.path.join(final_output_dir, 'best.pth'))
-        msg = 'Loss: {:.3f}, MeanIU: {: 4.4f}, Best_mIoU: {: 4.4f}'.format(
-            valid_loss, mean_IoU, best_mIoU)
-        logging.info(msg)
-        logging.info(IoU_array)
+    start = timeit.default_timer()
 
-    torch.save(model.module.state_dict(),
-               os.path.join(final_output_dir, 'final_state.pth'))
+    valid_loss, mean_IoU, IoU_array = validate(config,
+                                               val_loader, model, writer_dict)
+
+    msg = 'Loss: {:.3f}, MeanIU: {: 4.4f}'.format(
+        valid_loss, mean_IoU)
+    logging.info(msg)
+    logging.info(IoU_array)
 
     writer_dict['writer'].close()
     end = timeit.default_timer()

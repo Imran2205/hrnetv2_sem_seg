@@ -1,40 +1,8 @@
-# Semantic segmentation experiments using the annotated samples from an arbitrary Dataset
-- HRNetv2
+# Semantic segmentation experiments using the annotated samples from UWSv2 dataset
+train and test using HighResolutionNet (HRNet) model
 
+## Train
+!python train_hrnet_v2_uws.py --cfg ../experiments/hrnet/uws_v2_train_hrnet_v2_WACV25_CAMERA_READY.yaml
 
-##**Other models we could try**
-- FCN
-- PSPNet
-
-
-
-
-
-<!--## Apr 19 note:
-Cleaned up File structure in Drive, changes as follow:
-
-Final_data02_2024
-|--Poster and Paper
-|   |--Label Studio vs Segbuilder
-|   |- ...
-|--Codes
-|   |--All_color_codes
-|--Clean_dataset_04
-|   |- ...
-|--annotated_data
-|   |- ...
-|--All_color_codes
-|   |- ...
-
-### Tasks
-[x] upload trainTestSplit
-[] Axoloto new Mask Generate
-[] update yaml file
-[] run ipynb file-->
-
-
-
-
-
-train_hrnet_v2_final.py 
-dataparallel
+## Test
+!python test_hrnet_v2_uws.py --cfg ../experiments/hrnet/uws_v2_test_hrnet_v2_WACV25_CAMERA_READY.yaml
