@@ -68,8 +68,8 @@ class OhemCrossEntropy(nn.Module):
             score = F.interpolate(input=score, size=(
                 h, w), mode='bilinear', align_corners=config.MODEL.ALIGN_CORNERS)
         pred = F.softmax(score, dim=1)
-        print("????????")
-        print(target.shape, target.unique())
+        # print("????????")
+        # print(target.shape, target.unique())
         # for t in target:
         #     print(target.dtype, target.unique())
 
