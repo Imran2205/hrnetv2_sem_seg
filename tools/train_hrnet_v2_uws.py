@@ -222,6 +222,7 @@ def main():
     epoch_iters = int(train_dataset.__len__() / config.TRAIN.BATCH_SIZE_PER_GPU / len(gpus))
 
     best_mIoU = 0
+    best_epoch = 0
     last_epoch = 0
     if config.TRAIN.RESUME:
         model_state_file = os.path.join(final_output_dir,
@@ -229,6 +230,8 @@ def main():
         if os.path.isfile(model_state_file):
             checkpoint = torch.load(model_state_file, map_location={'cuda:0': 'cpu'})
             best_mIoU = checkpoint['best_mIoU']
+            if 'best_epoch' in checkpoint.keys():
+                best_epoch = checkpoint['best_epoch']
             last_epoch = checkpoint['epoch']
 
             model.module.model.load_state_dict(
@@ -276,15 +279,17 @@ def main():
         torch.save({
             'epoch': epoch + 1,
             'best_mIoU': best_mIoU,
+            'best_epoch': best_epoch,
             'state_dict': model.module.state_dict(),
             'optimizer': optimizer.state_dict(),
         }, os.path.join(final_output_dir, 'checkpoint.pth.tar'))
         if mean_IoU > best_mIoU:
             best_mIoU = mean_IoU
+            best_epoch = epoch
             torch.save(model.module.state_dict(),
                        os.path.join(final_output_dir, 'best.pth'))
-        msg = 'Loss: {:.3f}, MeanIU: {: 4.4f}, Best_mIoU: {: 4.4f}'.format(
-            valid_loss, mean_IoU, best_mIoU)
+        msg = 'Loss: {:.3f}, MeanIU: {: 4.4f}, Best_mIoU: {: 4.4f}, Best_epoch: {}'.format(
+            valid_loss, mean_IoU, best_mIoU, best_epoch)
         logger.info(msg)
         # logging.info(IoU_array)
 
