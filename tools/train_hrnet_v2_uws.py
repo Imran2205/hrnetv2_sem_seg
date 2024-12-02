@@ -24,6 +24,7 @@ from utils.load_images_and_masks import load_images_and_masks
 from tools.uws_dataloader import UWSDataLoader
 from utils.hrnet_v2_utils import transform
 from networks import hrnet_v2 as models
+from utils.print_iou_clean import print_selected_iou
 
 from tqdm import tqdm
 import glob
@@ -261,7 +262,14 @@ def main():
                   epoch_iters, config.TRAIN.LR, num_iters,
                   train_loader, optimizer, model, writer_dict)
 
-        valid_loss, mean_IoU, IoU_array = validate(config, val_loader, model, writer_dict)
+        valid_loss, _, IoU_array = validate(config, val_loader, model, writer_dict)
+
+        mean_IoU = print_selected_iou(
+            iou_list=IoU_array,
+            label_dict=train_dataset.get_label_dict(),
+            selected_ids=[9, 10] + list(range(30, 51)),
+            logger=logger
+        )
 
         logger.info('=> saving checkpoint to {}'.format(
             final_output_dir + 'checkpoint.pth.tar'))
@@ -277,8 +285,8 @@ def main():
                        os.path.join(final_output_dir, 'best.pth'))
         msg = 'Loss: {:.3f}, MeanIU: {: 4.4f}, Best_mIoU: {: 4.4f}'.format(
             valid_loss, mean_IoU, best_mIoU)
-        logging.info(msg)
-        logging.info(IoU_array)
+        logger.info(msg)
+        # logging.info(IoU_array)
 
     torch.save(model.module.state_dict(),
                os.path.join(final_output_dir, 'final_state.pth'))

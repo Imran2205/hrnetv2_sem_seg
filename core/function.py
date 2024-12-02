@@ -154,8 +154,8 @@ def validate(config, testloader, model, writer_dict):
         tp = np.diag(confusion_matrix[..., i])
         IoU_array = (tp / np.maximum(1.0, pos + res - tp))
         mean_IoU = IoU_array.mean()
-        if dist.get_rank() <= 0:
-            logging.info('{} {} {}'.format(i, IoU_array, mean_IoU))
+        # if dist.get_rank() <= 0:
+        #     logging.info('{} {} {}'.format(i, IoU_array, mean_IoU))
 
     writer = writer_dict['writer']
     global_steps = writer_dict['valid_global_steps']
