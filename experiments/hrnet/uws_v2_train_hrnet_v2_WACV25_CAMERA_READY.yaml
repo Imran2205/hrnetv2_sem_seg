@@ -13,7 +13,7 @@ DATASET:
   ROOT: '/nfs/jolteon/data/ssd/mdreza/sem_seg/datasets/uwss_v2/'
   TEST_SET: 'validation'
   TRAIN_SET: 'train'
-  NUM_CLASSES: 50
+  NUM_CLASSES: 51
 MODEL:
   NAME: seg_hrnet
   NUM_OUTPUTS: 1
