@@ -24,6 +24,7 @@ from uws_dataloader import UWSDataLoader
 from utils.hrnet_v2_utils import transform
 from utils.load_images_and_masks import load_images_and_masks
 from networks import hrnet_v2 as models
+from utils.print_iou_clean import print_selected_iou
 
 from tqdm import tqdm
 
@@ -200,8 +201,15 @@ def main():
 
     start = timeit.default_timer()
 
-    valid_loss, mean_IoU, IoU_array = validate(config,
+    valid_loss, _, IoU_array = validate(config,
                                                val_loader, model, writer_dict)
+
+    mean_IoU = print_selected_iou(
+        iou_list=IoU_array,
+        label_dict=val_dataset.get_label_dict(),
+        selected_ids=[9, 10] + list(range(21, 29)) + list(range(30, 51)),
+        logger=logger
+    )
 
     msg = 'Loss: {:.3f}, MeanIU: {: 4.4f}'.format(
         valid_loss, mean_IoU)

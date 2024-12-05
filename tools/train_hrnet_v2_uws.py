@@ -270,7 +270,7 @@ def main():
         mean_IoU = print_selected_iou(
             iou_list=IoU_array,
             label_dict=train_dataset.get_label_dict(),
-            selected_ids=[9, 10] + list(range(30, 51)),
+            selected_ids=[9, 10] + list(range(21, 29)) + list(range(30, 51)),
             logger=logger
         )
 
@@ -291,7 +291,7 @@ def main():
         msg = 'Loss: {:.3f}, MeanIU: {: 4.4f}, Best_mIoU: {: 4.4f}, Best_epoch: {}'.format(
             valid_loss, mean_IoU, best_mIoU, best_epoch)
         logger.info(msg)
-        # logging.info(IoU_array)
+        logging.info(IoU_array)
 
     torch.save(model.module.state_dict(),
                os.path.join(final_output_dir, 'final_state.pth'))
