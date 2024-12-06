@@ -306,3 +306,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+## separation between epoch
+## epoch + 1 during print
