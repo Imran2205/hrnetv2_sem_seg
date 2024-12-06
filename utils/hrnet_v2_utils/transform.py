@@ -97,10 +97,17 @@ class ResizeTest(object):
         img_h = image.shape[0]
         img_w = image.shape[1]
         deviation = img_w - img_h
-        top, bottom = deviation // 2, deviation - (deviation // 2)
-        color = [0, 0, 0]
-        new_im = cv2.copyMakeBorder(image, top, bottom, 0, 0, cv2.BORDER_CONSTANT, value=color)
-        new_lb = cv2.copyMakeBorder(label, top, bottom, 0, 0, cv2.BORDER_CONSTANT, value=color)
+        if deviation > 0:
+            top, bottom = deviation // 2, deviation - (deviation // 2)
+            color = [0, 0, 0]
+            new_im = cv2.copyMakeBorder(image, top, bottom, 0, 0, cv2.BORDER_CONSTANT, value=color)
+            new_lb = cv2.copyMakeBorder(label, top, bottom, 0, 0, cv2.BORDER_CONSTANT, value=color)
+        else:
+            left, right = abs(deviation) // 2, abs(deviation) - (abs(deviation) // 2)
+            color = [0, 0, 0]
+            new_im = cv2.copyMakeBorder(image, 0, 0, left, right, cv2.BORDER_CONSTANT, value=color)
+            new_lb = cv2.copyMakeBorder(label, 0, 0, left, right, cv2.BORDER_CONSTANT, value=color)
+
         image = cv2.resize(new_im, self.size[::-1], interpolation=cv2.INTER_LINEAR)
         label = cv2.resize(new_lb, self.size[::-1], interpolation=cv2.INTER_NEAREST)
         return image, label

@@ -276,6 +276,13 @@ def main():
 
         logger.info('=> saving checkpoint to {}'.format(
             final_output_dir + 'checkpoint.pth.tar'))
+
+        if mean_IoU > best_mIoU:
+            best_mIoU = mean_IoU
+            best_epoch = epoch
+            torch.save(model.module.state_dict(),
+                       os.path.join(final_output_dir, 'best.pth'))
+
         torch.save({
             'epoch': epoch + 1,
             'best_mIoU': best_mIoU,
@@ -283,11 +290,7 @@ def main():
             'state_dict': model.module.state_dict(),
             'optimizer': optimizer.state_dict(),
         }, os.path.join(final_output_dir, 'checkpoint.pth.tar'))
-        if mean_IoU > best_mIoU:
-            best_mIoU = mean_IoU
-            best_epoch = epoch
-            torch.save(model.module.state_dict(),
-                       os.path.join(final_output_dir, 'best.pth'))
+
         msg = 'Loss: {:.3f}, MeanIU: {: 4.4f}, Best_mIoU: {: 4.4f}, Best_epoch: {}'.format(
             valid_loss, mean_IoU, best_mIoU, best_epoch)
         logger.info(msg)
