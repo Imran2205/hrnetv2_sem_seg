@@ -274,15 +274,14 @@ def main():
             logger=logger
         )
 
-        logger.info('=> saving checkpoint to {}'.format(
-            final_output_dir + 'checkpoint.pth.tar'))
-
         if mean_IoU > best_mIoU:
             best_mIoU = mean_IoU
             best_epoch = epoch
             torch.save(model.module.state_dict(),
                        os.path.join(final_output_dir, 'best.pth'))
 
+        logger.info('=> saving checkpoint to {}'.format(
+            final_output_dir + 'checkpoint.pth.tar'))
         torch.save({
             'epoch': epoch + 1,
             'best_mIoU': best_mIoU,

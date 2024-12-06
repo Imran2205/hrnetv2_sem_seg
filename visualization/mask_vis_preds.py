@@ -8,6 +8,7 @@ import os
 from natsort import natsorted
 import numpy as np
 from PIL import Image
+from utils.hrnet_v2_utils import transform
 
 
 class HoverLabel(QLabel):
@@ -288,15 +289,69 @@ class ImageViewer(QMainWindow):
         if not self.image_paths:
             return
 
+        def center_crop(img):
+            if len(img.shape) == 3:
+                h, w, _ = img.shape
+            else:
+                h, w = img.shape
+
+            size = min(h, w)
+            start_h = (h - size) // 2
+            start_w = (w - size) // 2
+
+            if len(img.shape) == 3:
+                return img[start_h:start_h + size, start_w:start_w + size, :]
+            return img[start_h:start_h + size, start_w:start_w + size]
+
+        # Create cropped directories if they don't exist
+        if self.folder_combo.currentText() == 'validation':
+            validation_dir = os.path.dirname(os.path.dirname(self.image_paths[self.current_index]))
+            cropped_images_dir = os.path.join(validation_dir, 'cropped_images')
+            cropped_labels_dir = os.path.join(validation_dir, 'cropped_labels')
+            cropped_colored_labels_dir = os.path.join(validation_dir, 'cropped_colored_labels')
+
+            os.makedirs(cropped_images_dir, exist_ok=True)
+            os.makedirs(cropped_labels_dir, exist_ok=True)
+            os.makedirs(cropped_colored_labels_dir, exist_ok=True)
+
         current_image = os.path.basename(self.image_paths[self.current_index])
         self.image_name_label.setText(f"Image: {current_image} ({self.current_index + 1}/{len(self.image_paths)})")
 
-        # Load RGB image
-        rgb_img = QImage(self.image_paths[self.current_index])
-        self.rgb_label.setPixmap(QPixmap.fromImage(rgb_img).scaled(512, 512, Qt.AspectRatioMode.KeepAspectRatio))
+        # Load and crop RGB image
+        rgb_img = np.array(Image.open(self.image_paths[self.current_index]))
+        rgb_img_cropped = center_crop(rgb_img)
 
-        # Load and set new segmentation data
+        # Save cropped image if in validation mode and it doesn't exist
+        if self.folder_combo.currentText() == 'validation':
+            cropped_image_path = os.path.join(cropped_images_dir, current_image)
+            if not os.path.exists(cropped_image_path):
+                Image.fromarray(rgb_img_cropped).save(cropped_image_path)
+
+        height, width = rgb_img_cropped.shape[:2]
+        bytes_per_line = 3 * width
+        rgb_qimg = QImage(rgb_img_cropped.tobytes(), width, height, bytes_per_line, QImage.Format.Format_RGB888)
+        self.rgb_label.setPixmap(QPixmap.fromImage(rgb_qimg).scaled(512, 512, Qt.AspectRatioMode.KeepAspectRatio))
+
+        # Load and crop segmentation data
+        current_label = os.path.basename(self.label_paths[self.current_index])
         self.current_seg = np.array(Image.open(self.label_paths[self.current_index]))
+        self.current_seg = center_crop(self.current_seg)
+
+        # Save cropped label and colored label if in validation mode and they don't exist
+        if self.folder_combo.currentText() == 'validation':
+            # Save raw label
+            cropped_label_path = os.path.join(cropped_labels_dir, current_label)
+            if not os.path.exists(cropped_label_path):
+                Image.fromarray(self.current_seg).save(cropped_label_path)
+
+            # Save colored label
+            colored_label_filename = os.path.splitext(current_label)[0] + '_colored.png'
+            cropped_colored_label_path = os.path.join(cropped_colored_labels_dir, colored_label_filename)
+            if not os.path.exists(cropped_colored_label_path):
+                colored_seg = self.color_map[self.current_seg]
+                Image.fromarray(colored_seg.astype(np.uint8)).save(cropped_colored_label_path)
+
+        height, width = self.current_seg.shape
 
         # Reset image data for hover labels
         self.colored_seg_label.image_data = self.current_seg.copy()
@@ -308,18 +363,19 @@ class ImageViewer(QMainWindow):
 
         # Create and display colored segmentation
         colored_seg = self.color_map[self.current_seg]
-        height, width = self.current_seg.shape
-        colored_qimg = QImage(colored_seg.data, width, height, 3 * width, QImage.Format.Format_RGB888)
+        bytes_per_line = 3 * width
+        colored_qimg = QImage(colored_seg.tobytes(), width, height, bytes_per_line, QImage.Format.Format_RGB888)
         self.colored_seg_label.setPixmap(
             QPixmap.fromImage(colored_qimg).scaled(512, 512, Qt.AspectRatioMode.KeepAspectRatio))
 
         # Display raw segmentation
-        raw_qimg = QImage(self.current_seg.data, width, height, width, QImage.Format.Format_Grayscale8)
+        raw_qimg = QImage(self.current_seg.tobytes(), width, height, width, QImage.Format.Format_Grayscale8)
         self.raw_seg_label.setPixmap(QPixmap.fromImage(raw_qimg).scaled(512, 512, Qt.AspectRatioMode.KeepAspectRatio))
 
         # Load predictions if in validation mode
         if self.folder_combo.currentText() == 'validation':
             self.current_pred = np.array(Image.open(self.pred_paths[self.current_index]))
+            self.current_pred = center_crop(self.current_pred)
 
             # Reset prediction image data
             self.pred_label.image_data = self.current_pred.copy()
@@ -333,8 +389,10 @@ class ImageViewer(QMainWindow):
 
             # Create and display colored prediction
             colored_pred = self.color_map[self.current_pred]
-            pred_qimg = QImage(self.current_pred.data, width, height, width, QImage.Format.Format_Grayscale8)
-            colored_pred_qimg = QImage(colored_pred.data, width, height, 3 * width, QImage.Format.Format_RGB888)
+            pred_qimg = QImage(self.current_pred.tobytes(), width, height, width, QImage.Format.Format_Grayscale8)
+            bytes_per_line = 3 * width
+            colored_pred_qimg = QImage(colored_pred.tobytes(), width, height, bytes_per_line,
+                                       QImage.Format.Format_RGB888)
 
             self.pred_label.setPixmap(QPixmap.fromImage(pred_qimg).scaled(512, 512, Qt.AspectRatioMode.KeepAspectRatio))
             self.colored_pred_label.setPixmap(
