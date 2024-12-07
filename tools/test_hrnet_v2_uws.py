@@ -67,7 +67,7 @@ def main():
         torch.manual_seed(args.seed)
 
     logger, final_output_dir, tb_log_dir = create_logger(
-        config, args.cfg, 'train')
+        config, args.cfg, 'test')
 
     logger.info(pprint.pformat(args))
     logger.info(config)
