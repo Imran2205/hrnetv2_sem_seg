@@ -17,9 +17,6 @@ def create_resized_directory(source_path):
 
 
 def get_relative_path(file_path, root_path):
-    """
-    Get the relative path of a file with respect to the root path
-    """
     return os.path.relpath(str(file_path), str(root_path))
 
 
@@ -33,69 +30,45 @@ def calculate_new_dimensions(width, height, scale_percent):
 
 
 def reduce_image_size(source_path, dest_path, quality_percent, scale_percent, target_dpi=None):
-    """
-    Reduce the file size and optionally the resolution of an image while maintaining aspect ratio
-
-    Args:
-        source_path (str): Path to the source image file
-        dest_path (str): Path where the processed image will be saved
-        quality_percent (int): Desired quality percentage (1-100)
-        scale_percent (int): Desired scale percentage (1-100)
-        target_dpi (int, optional): Desired DPI value. If None, original DPI is maintained
-    """
     try:
-        # Create destination directory if it doesn't exist
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
 
-        # Open the image
         with Image.open(source_path) as img:
             # Get original format, DPI, and dimensions
             img_format = img.format
             original_dpi = img.info.get('dpi', (72, 72))
             original_width, original_height = img.size
 
-            # Calculate new dimensions
             new_width, new_height = calculate_new_dimensions(
                 original_width, original_height, scale_percent)
 
-            # Resize the image if scale_percent is less than 100
             if scale_percent < 100:
                 img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
-            # Get original file size
             original_size = os.path.getsize(source_path) / 1024  # Size in KB
 
-            # Set DPI if specified
             dpi_to_use = (target_dpi, target_dpi) if target_dpi else original_dpi
 
             if img_format == 'PNG':
-                # For PNG, use optimize and reduce the number of colors if possible
                 if img.mode == 'RGBA':
-                    # Preserve alpha channel for PNGs with transparency
                     img.save(dest_path, format='PNG', optimize=True,
                              dpi=dpi_to_use)
                 else:
-                    # For non-transparent PNGs, we can try additional optimization
-                    if img.mode != 'P':  # If not already using palette
-                        # Convert to palette mode if image has less than 256 colors
+                    if img.mode != 'P':
                         try:
                             img_conv = img.convert('P', palette=Image.ADAPTIVE)
                             img_conv.save(dest_path, format='PNG', optimize=True,
                                           dpi=dpi_to_use)
                         except Exception:
-                            # If palette conversion fails, save with basic optimization
                             img.save(dest_path, format='PNG', optimize=True,
                                      dpi=dpi_to_use)
                     else:
-                        # Already in palette mode, just optimize
                         img.save(dest_path, format='PNG', optimize=True,
                                  dpi=dpi_to_use)
             else:
-                # For JPEG and other formats, use quality parameter
                 img.save(dest_path, format=img_format, quality=quality_percent,
                          optimize=True, dpi=dpi_to_use)
 
-            # Get new file size
             new_size = os.path.getsize(dest_path) / 1024  # Size in KB
 
             return True, original_size, new_size, original_dpi, dpi_to_use, \
@@ -106,16 +79,10 @@ def reduce_image_size(source_path, dest_path, quality_percent, scale_percent, ta
 
 
 def process_folder(source_folder, quality_percent, scale_percent, target_dpi=None):
-    """
-    Process all images in a folder and its subfolders
-    """
-    # Create resized directory
     dest_folder = create_resized_directory(source_folder)
 
-    # Supported image formats
     IMAGE_FORMATS = {'.jpg', '.jpeg', '.png', '.JPG', '.JPEG', '.PNG'}
 
-    # Statistics
     total_files = 0
     processed_images = 0
     copied_files = 0
@@ -125,11 +92,9 @@ def process_folder(source_folder, quality_percent, scale_percent, target_dpi=Non
     start_time = time.time()
     source_folder = Path(source_folder)
 
-    # Walk through all files in the folder and subfolders
     for source_path in source_folder.rglob('*'):
         if source_path.is_file():
             total_files += 1
-            # Get the relative path to maintain directory structure
             rel_path = get_relative_path(source_path, source_folder)
             dest_path = os.path.join(dest_folder, rel_path)
 
@@ -154,7 +119,6 @@ def process_folder(source_folder, quality_percent, scale_percent, target_dpi=Non
                 else:
                     failed_files.append(rel_path)
             else:
-                # Copy non-image files
                 os.makedirs(os.path.dirname(dest_path), exist_ok=True)
                 shutil.copy2(source_path, dest_path)
                 copied_files += 1
@@ -162,7 +126,6 @@ def process_folder(source_folder, quality_percent, scale_percent, target_dpi=Non
 
     end_time = time.time()
 
-    # Print summary
     print("\nSummary:")
     print(f"Total files processed: {total_files}")
     print(f"Images processed: {processed_images}")
@@ -184,30 +147,24 @@ def main():
     scale_percent = 50
     dpi_input = 700
 
-    # Convert DPI input
     target_dpi = int(dpi_input) if dpi_input else None
 
-    # Validate quality percentage
     if not 1 <= quality_percent <= 100:
         print("Quality percentage must be between 1 and 100")
         return
 
-    # Validate scale percentage
     if not 1 <= scale_percent <= 100:
         print("Scale percentage must be between 1 and 100")
         return
 
-    # Validate DPI if provided
     if target_dpi is not None and target_dpi <= 0:
         print("DPI must be a positive number")
         return
 
-    # Check if folder exists
     if not os.path.exists(folder_path):
         print("Source folder does not exist")
         return
 
-    # Process the folder
     process_folder(folder_path, quality_percent, scale_percent, target_dpi)
 
 
