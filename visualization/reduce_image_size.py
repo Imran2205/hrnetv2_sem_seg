@@ -23,14 +23,24 @@ def get_relative_path(file_path, root_path):
     return os.path.relpath(str(file_path), str(root_path))
 
 
-def reduce_image_size(source_path, dest_path, quality_percent, target_dpi=None):
+def calculate_new_dimensions(width, height, scale_percent):
     """
-    Reduce the file size of an image while maintaining resolution and format
+    Calculate new dimensions based on scale percentage
+    """
+    new_width = int(width * scale_percent / 100)
+    new_height = int(height * scale_percent / 100)
+    return new_width, new_height
+
+
+def reduce_image_size(source_path, dest_path, quality_percent, scale_percent, target_dpi=None):
+    """
+    Reduce the file size and optionally the resolution of an image while maintaining aspect ratio
 
     Args:
         source_path (str): Path to the source image file
         dest_path (str): Path where the processed image will be saved
         quality_percent (int): Desired quality percentage (1-100)
+        scale_percent (int): Desired scale percentage (1-100)
         target_dpi (int, optional): Desired DPI value. If None, original DPI is maintained
     """
     try:
@@ -39,9 +49,18 @@ def reduce_image_size(source_path, dest_path, quality_percent, target_dpi=None):
 
         # Open the image
         with Image.open(source_path) as img:
-            # Get original format and DPI
+            # Get original format, DPI, and dimensions
             img_format = img.format
             original_dpi = img.info.get('dpi', (72, 72))
+            original_width, original_height = img.size
+
+            # Calculate new dimensions
+            new_width, new_height = calculate_new_dimensions(
+                original_width, original_height, scale_percent)
+
+            # Resize the image if scale_percent is less than 100
+            if scale_percent < 100:
+                img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
             # Get original file size
             original_size = os.path.getsize(source_path) / 1024  # Size in KB
@@ -79,13 +98,14 @@ def reduce_image_size(source_path, dest_path, quality_percent, target_dpi=None):
             # Get new file size
             new_size = os.path.getsize(dest_path) / 1024  # Size in KB
 
-            return True, original_size, new_size, original_dpi, dpi_to_use
+            return True, original_size, new_size, original_dpi, dpi_to_use, \
+                (original_width, original_height), (new_width, new_height)
 
     except Exception as e:
-        return False, 0, 0, (0, 0), (0, 0), str(e)
+        return False, 0, 0, (0, 0), (0, 0), (0, 0), (0, 0), str(e)
 
 
-def process_folder(source_folder, quality_percent, target_dpi=None):
+def process_folder(source_folder, quality_percent, scale_percent, target_dpi=None):
     """
     Process all images in a folder and its subfolders
     """
@@ -114,8 +134,10 @@ def process_folder(source_folder, quality_percent, target_dpi=None):
             dest_path = os.path.join(dest_folder, rel_path)
 
             if source_path.suffix in IMAGE_FORMATS:
-                success, original_size, new_size, original_dpi, new_dpi = reduce_image_size(
-                    str(source_path), dest_path, quality_percent, target_dpi)
+                success, original_size, new_size, original_dpi, new_dpi, \
+                    original_dims, new_dims = reduce_image_size(
+                    str(source_path), dest_path, quality_percent,
+                    scale_percent, target_dpi)
 
                 if success:
                     processed_images += 1
@@ -125,6 +147,8 @@ def process_folder(source_folder, quality_percent, target_dpi=None):
                     print(f"Original size: {original_size:.2f}KB")
                     print(f"New size: {new_size:.2f}KB")
                     print(f"Saved: {saved_size:.2f}KB")
+                    print(f"Original dimensions: {original_dims[0]}x{original_dims[1]}")
+                    print(f"New dimensions: {new_dims[0]}x{new_dims[1]}")
                     print(f"Original DPI: {original_dpi}")
                     print(f"New DPI: {new_dpi}")
                 else:
@@ -155,10 +179,10 @@ def process_folder(source_folder, quality_percent, target_dpi=None):
 
 
 def main():
-    # Get input from user
     folder_path = "/Users/ibk5106/Desktop/research/under_water/hrnetv2_sem_seg/visualization/figures"
     quality_percent = 50
-    dpi_input = 900
+    scale_percent = 50
+    dpi_input = 700
 
     # Convert DPI input
     target_dpi = int(dpi_input) if dpi_input else None
@@ -166,6 +190,11 @@ def main():
     # Validate quality percentage
     if not 1 <= quality_percent <= 100:
         print("Quality percentage must be between 1 and 100")
+        return
+
+    # Validate scale percentage
+    if not 1 <= scale_percent <= 100:
+        print("Scale percentage must be between 1 and 100")
         return
 
     # Validate DPI if provided
@@ -179,7 +208,7 @@ def main():
         return
 
     # Process the folder
-    process_folder(folder_path, quality_percent, target_dpi)
+    process_folder(folder_path, quality_percent, scale_percent, target_dpi)
 
 
 if __name__ == "__main__":
