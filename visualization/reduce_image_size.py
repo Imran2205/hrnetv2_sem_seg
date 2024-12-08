@@ -142,6 +142,9 @@ def process_folder(source_folder, quality_percent, scale_percent, target_dpi=Non
 
 
 def main():
+    """
+    This script will save resized images in source_folder_name_resized directory.
+    """
     folder_path = "/Users/ibk5106/Desktop/research/under_water/hrnetv2_sem_seg/visualization/figures"
     quality_percent = 50
     scale_percent = 50
