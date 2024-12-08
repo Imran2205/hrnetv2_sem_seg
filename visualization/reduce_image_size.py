@@ -145,9 +145,7 @@ def main():
     folder_path = "/Users/ibk5106/Desktop/research/under_water/hrnetv2_sem_seg/visualization/figures"
     quality_percent = 50
     scale_percent = 50
-    dpi_input = 700
-
-    target_dpi = int(dpi_input) if dpi_input else None
+    target_dpi = 700
 
     if not 1 <= quality_percent <= 100:
         print("Quality percentage must be between 1 and 100")
