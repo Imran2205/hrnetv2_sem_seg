@@ -2,13 +2,12 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout,
                              QVBoxLayout, QPushButton, QComboBox, QLabel, QTableWidget,
                              QTableWidgetItem)
 from PyQt6.QtGui import QPixmap, QImage
-from PyQt6.QtCore import Qt, QPoint
+from PyQt6.QtCore import Qt
 import sys
 import os
 from natsort import natsorted
 import numpy as np
 from PIL import Image
-from utils.hrnet_v2_utils import transform
 
 
 class HoverLabel(QLabel):

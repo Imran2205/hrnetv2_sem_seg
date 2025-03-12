@@ -1,18 +1,13 @@
-import torch
-import torch.nn.functional as F
 import numpy as np
 from PIL import Image
-import os
 from tqdm import tqdm
 import torch
 # for composing the transform for both 'image' as well as 'label'
-from utils.hrnet_utils import transform
 # import torchvision.transforms as transforms # HRNet doesn't do basic torchvision's transform which takes only one tensor (either the image or the label)
 
-from utils.hrnet_v2_utils.utils import FullModel
+from networks.hrnet_v2.hrnet_v2_utils import FullModel
 from networks.hrnet_v2.seg_hrnet import HighResolutionNet
-from core.criterion import CrossEntropy, OhemCrossEntropy
-import torch.nn as nn
+from core.criterion import CrossEntropy
 from torch.nn import functional as F
 import os
 
@@ -89,7 +84,6 @@ def process_images(input_dir, output_dir, model, preprocess, device, color_map):
 
 # Main execution
 if __name__ == "__main__":
-    import argparse
     import yaml
 
 
@@ -112,7 +106,6 @@ if __name__ == "__main__":
     # ------------------------------------------------------------------
     from config import \
         config_hrnet_v2 as config  # from config directory ('package' more precisely) loading 'default_hrnet_v2.py' as 'config_hrnet_v2' which is subsequently imported as 'config'
-    from config import update_config_hrnet_v2 as update_config
 
     # ------------------------------------------------------------------
 

@@ -1,22 +1,18 @@
-import _init_paths
-
 import logging
 import os
 import time
 
 import numpy as np
-import numpy.ma as ma
 from tqdm import tqdm
 
 import torch
-import torch.nn as nn
 from torch.nn import functional as F
 
-from utils.hrnet_v2_utils.utils import AverageMeter
-from utils.hrnet_v2_utils.utils import get_confusion_matrix
-from utils.hrnet_v2_utils.utils import adjust_learning_rate
+from networks.hrnet_v2.hrnet_v2_utils import AverageMeter
+from networks.hrnet_v2.hrnet_v2_utils import get_confusion_matrix
+from networks.hrnet_v2.hrnet_v2_utils import adjust_learning_rate
 
-import utils.hrnet_v2_utils.distributed as dist
+import networks.hrnet_v2.hrnet_v2_utils.distributed as dist
 
 
 def reduce_tensor(inp):

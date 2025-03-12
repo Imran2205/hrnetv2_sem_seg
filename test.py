@@ -1,12 +1,9 @@
-import _init_paths
 import argparse
 import os
 import pprint
 
 import logging
 import timeit
-
-import numpy as np
 
 import torch
 import torch.nn as nn
@@ -18,18 +15,12 @@ from config import config_hrnet_v2 as config
 from config import update_config_hrnet_v2 as update_config
 from core.criterion import CrossEntropy, OhemCrossEntropy
 from core.function import validate
-from utils.hrnet_v2_utils.utils import create_logger, FullModel
-from utils.hrnet_v2_utils.normalization_utils import get_imagenet_mean_std
-from uws_dataloader import UWSDataLoader
-from utils.hrnet_v2_utils import transform
+from networks.hrnet_v2.hrnet_v2_utils import create_logger, FullModel
+from networks.hrnet_v2.hrnet_v2_utils import get_imagenet_mean_std
+from dataloaders.uws.uws_full_dataloader import UWSDataLoader
+from networks.hrnet_v2.hrnet_v2_utils import transform
 from utils.load_images_and_masks import load_images_and_masks
-from networks import hrnet_v2 as models
 from utils.print_iou_clean import print_selected_iou
-
-from tqdm import tqdm
-
-import glob
-from PIL import Image
 
 
 def parse_args():
@@ -67,7 +58,7 @@ def main():
         torch.manual_seed(args.seed)
 
     logger, final_output_dir, tb_log_dir = create_logger(
-        config, args.cfg, 'train')
+        config, args.cfg, 'test')
 
     logger.info(pprint.pformat(args))
     logger.info(config)
@@ -89,7 +80,7 @@ def main():
     # prepare data
     mean, std = get_imagenet_mean_std()
 
-    if config.DATASET.DATASET == 'UWS3':
+    if config.DATASET.DATASET == 'UWS':
         val_transform_list = [
             transform.ResizeShort(config.TRAIN.IMAGE_SIZE[0]),
             transform.Crop(
