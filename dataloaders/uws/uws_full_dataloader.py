@@ -1,25 +1,6 @@
-import torch
 import torch.utils.data
-import torchvision.transforms as transforms
 import numpy as np
-from imageio import imread
-from PIL import Image
-import cv2
-import os
-from scipy.io import loadmat
-from tqdm import tqdm
-from torch.nn import functional as F
-import os
-
-import cv2
-import numpy as np
-import random
-
 import torch
-from torch.nn import functional as F
-from torch.utils import data
-
-from config import config_hrnet_v2 as config
 
 
 class UWSDataLoader(torch.utils.data.Dataset):
