@@ -8,9 +8,9 @@ from tqdm import tqdm
 import torch
 from torch.nn import functional as F
 
-from networks.hrnet_v2.hrnet_v2_utils import AverageMeter
-from networks.hrnet_v2.hrnet_v2_utils import get_confusion_matrix
-from networks.hrnet_v2.hrnet_v2_utils import adjust_learning_rate
+from networks.hrnet_v2.hrnet_v2_utils.utils import AverageMeter
+from networks.hrnet_v2.hrnet_v2_utils.utils import get_confusion_matrix
+from networks.hrnet_v2.hrnet_v2_utils.utils import adjust_learning_rate
 
 import networks.hrnet_v2.hrnet_v2_utils.distributed as dist
 
