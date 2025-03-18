@@ -9,7 +9,7 @@ WORKERS: 2
 PRINT_FREQ: 100
 
 DATASET:
-  DATASET: UWS3
+  DATASET: UWS
   ROOT: '/home/ibk5106/projects/projects/uws/uwss_v2'
   TEST_SET: 'validation'
   TRAIN_SET: 'train'

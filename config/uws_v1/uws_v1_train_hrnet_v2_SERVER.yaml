@@ -9,7 +9,7 @@ WORKERS: 2
 PRINT_FREQ: 100
 
 DATASET:
-  DATASET: UWS3
+  DATASET: UWS
   ROOT: '/nfs/jolteon/data/ssd/mdreza/sem_seg/datasets/uwss_v1/'
   TEST_SET: 'validation'
   TRAIN_SET: 'train'

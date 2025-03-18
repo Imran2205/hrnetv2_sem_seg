@@ -9,7 +9,7 @@ WORKERS: 2
 PRINT_FREQ: 5
 
 DATASET:
-  DATASET: UWS3
+  DATASET: UWS
   ROOT: '/content/uw_sem_seg_dataset'
   TEST_SET: 'validation'
   TRAIN_SET: 'train'
