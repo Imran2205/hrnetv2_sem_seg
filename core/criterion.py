@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 import logging
-from config import config_hrnet_v2 as config
+from networks.hrnet_v2.config import config_hrnet_v2 as config
 
 
 class CrossEntropy(nn.Module):
