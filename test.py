@@ -11,8 +11,8 @@ import torch.backends.cudnn as cudnn
 import torch.optim
 from tensorboardX import SummaryWriter
 
-from config import config_hrnet_v2 as config
-from config import update_config_hrnet_v2 as update_config
+from networks.hrnet_v2.config import config_hrnet_v2 as config
+from networks.hrnet_v2.config import update_config_hrnet_v2 as update_config
 from core.criterion import CrossEntropy, OhemCrossEntropy
 from core.function import validate
 from networks.hrnet_v2.hrnet_v2_utils import create_logger, FullModel
