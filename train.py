@@ -87,7 +87,7 @@ def main():
     # prepare data
     mean, std = get_imagenet_mean_std()
     
-    if config.DATASET.DATASET == 'UWS3':
+    if config.DATASET.DATASET == 'UWS':
         train_transform_list = [
             transform.ResizeShort(config.TRAIN.IMAGE_SIZE[0]),
             transform.Crop(
